@@ -12,6 +12,12 @@ const instance = axios.create({
 // 添加请求拦截器
 instance.interceptors.request.use(function (config) {
   // 在发送请求之前做些什么
+  // 开启loading，禁止背景点击（节流处理，防止多次无效触发）
+  Toast.loading({
+    message: '请求中...',
+    forbidClick: true,
+    loadingType: 'spinner'
+  })
   return config
 }, function (error) {
   // 对请求错误做些什么
@@ -26,6 +32,9 @@ instance.interceptors.response.use(function (response) {
   if (res.status !== 200) {
     Toast(res.message)
     return Promise.reject(res.message)
+  } else {
+    // 清楚loading效果
+    Toast.clear()
   }
   return res
 }, function (error) {
