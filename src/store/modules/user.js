@@ -8,7 +8,7 @@ export default {
     }
   },
   mutations: {
-    // 所有mutations的第一个参数，都是state
+    // 所有mutations的第一个参数，都是state!
     setUserInfo (state, obj) {
       state.userInfo = obj
       setInfo(obj)
