@@ -3,8 +3,10 @@ import 'vant/lib/index.css'
 // 插件安装初始化：内部会将所有的vant组件进行导入注册
 Vue.use(Vant) */
 import Vue from 'vue'
-import { Icon, Search, Swipe, SwipeItem, Grid, GridItem, Button, Switch, Rate, Tabbar, TabbarItem, NavBar, Toast, ActionSheet, Dialog } from 'vant'
+import { Icon, Search, Swipe, SwipeItem, Grid, GridItem, Button, Switch, Rate, Tabbar, TabbarItem, NavBar, Toast, ActionSheet, Dialog, Checkbox, CheckboxGroup } from 'vant'
 
+Vue.use(Checkbox)
+Vue.use(CheckboxGroup)
 Vue.use(Dialog)
 Vue.use(ActionSheet)
 Vue.use(Icon)
