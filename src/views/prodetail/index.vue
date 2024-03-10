@@ -2,8 +2,8 @@
   <div class="prodetail">
     <van-nav-bar fixed title="商品详情页" left-arrow @click-left="$router.go(-1)" />
 
-    <van-swipe :autoplay="3000" @change="onChange">
-      <van-swipe-item v-for="(image) in images" :key="image.file_id">
+    <van-swipe :autoplay="4000" @change="onChange">
+      <van-swipe-item v-for="(image, index) in images" :key="index">
         <img :src="image.external_url" />
       </van-swipe-item>
 
@@ -19,7 +19,7 @@
           <span class="now">￥{{ detail.goods_price_min }}</span>
           <span class="oldprice">￥{{ detail.goods_price_max }}</span>
         </div>
-        <div class="sellcount">已售{{ detail.goods_sales }}件</div>
+        <div class="sellcount">已售 {{ detail.goods_sales }} 件</div>
       </div>
       <div class="msg text-ellipsis-2">
         {{ detail.goods_name }}
@@ -40,12 +40,12 @@
     <div class="comment">
       <div class="comment-title">
         <div class="left">商品评价 ({{ total }}条)</div>
-        <div class="right">查看更多 <van-icon name="arrow"/> </div>
+        <div class="right">查看更多 <van-icon name="arrow" /> </div>
       </div>
       <div class="comment-list">
         <div class="comment-item" v-for="item in commentList" :key="item.comment_id">
           <div class="top">
-            <img :src="item.user.avatar_url || defaultImg">
+            <img :src="item.user.avatar_url || defaultImg" alt="">
             <div class="name">{{ item.user.nick_name }}</div>
             <van-rate :size="16" :value="item.score / 2" color="#ffd21e" void-icon="star" void-color="#eee"/>
           </div>
@@ -75,35 +75,39 @@
         <span>购物车</span>
       </div>
       <div @click="addFn" class="btn-add">加入购物车</div>
-      <div @click="buyFn" class="btn-buy">立刻购买</div>
+      <div @click="buyNow" class="btn-buy">立刻购买</div>
     </div>
 
-    <!-- 加入购物车的弹框 -->
+    <!-- 加入购物车/立即购买 公用的弹层 -->
     <van-action-sheet v-model="showPannel" :title="mode === 'cart' ? '加入购物车' : '立刻购买'">
       <div class="product">
         <div class="product-title">
-      <div class="left">
-        <img :src="detail.goods_image" alt="">
-      </div>
-      <div class="right">
-        <div class="price">
-          <span>¥</span>
-          <span class="nowprice">{{ detail.goods_price_min }}</span>
+          <div class="left">
+            <img :src="detail.goods_image" alt="">
+          </div>
+          <div class="right">
+            <div class="price">
+              <span>¥</span>
+              <span class="nowprice">{{ detail.goods_price_min }}</span>
+            </div>
+            <div class="count">
+              <span>库存</span>
+              <span>{{ detail.stock_total }}</span>
+            </div>
+          </div>
         </div>
-        <div class="count">
-          <span>库存</span>
-          <span>{{ detail.stock_total }}</span>
+        <div class="num-box">
+          <span>数量</span>
+          <!-- v-model 本质上 :value 和 @input 的简写 -->
+          <CountBox v-model="addCount"></CountBox>
         </div>
-      </div>
+
+        <!-- 有库存才显示提交按钮 -->
+        <div class="showbtn" v-if="detail.stock_total > 0">
+          <div class="btn" v-if="mode === 'cart'" @click="addCart">加入购物车</div>
+          <div class="btn now" v-else @click="goBuyNow">立刻购买</div>
         </div>
-      <div class="num-box">
-        <span>数量</span>
-        <CountBox v-model="addCount"></CountBox>
-        </div>
-      <div class="showbtn" v-if="detail.stock_total > 0">
-        <div class="btn" v-if="mode === 'cart'" @click="addCart">加入购物车</div>
-        <div class="btn now" v-else>立刻购买</div>
-      </div>
+
         <div class="btn-none" v-else>该商品已抢完</div>
       </div>
     </van-action-sheet>
@@ -111,12 +115,15 @@
 </template>
 
 <script>
-import { getProDetail, getProComments } from '@/api/product'
+import { getProComments, getProDetail } from '@/api/product'
 import defaultImg from '@/assets/default-avatar.png'
 import CountBox from '@/components/CountBox.vue'
 import { addCart } from '@/api/cart'
+import loginConfirm from '@/mixins/loginConfirm'
+
 export default {
   name: 'ProDetail',
+  mixins: [loginConfirm],
   components: {
     CountBox
   },
@@ -128,9 +135,9 @@ export default {
       total: 0, // 评价总数
       commentList: [], // 评价列表
       defaultImg,
-      showPannel: false,
-      mode: 'cart',
-      addCount: 1,
+      showPannel: false, // 控制弹层的显示隐藏
+      mode: 'cart', // 标记弹层状态
+      addCount: 1, // 数字框绑定的数据
       cartTotal: 0 // 购物车角标
     }
   },
@@ -149,47 +156,45 @@ export default {
     },
     async getDetail () {
       const { data: { detail } } = await getProDetail(this.goodsId)
-      // console.log(res)
       this.detail = detail
       this.images = detail.goods_images
+      console.log(this.images)
     },
     async getComments () {
       const { data: { list, total } } = await getProComments(this.goodsId, 3)
-      // console.log(res)
-      this.total = total
       this.commentList = list
+      this.total = total
     },
     addFn () {
       this.mode = 'cart'
       this.showPannel = true
     },
-    buyFn () {
+    buyNow () {
       this.mode = 'buyNow'
       this.showPannel = true
     },
     async addCart () {
-      // 判断token是否存在
-      if (!this.$store.getters.token) {
-        // console.log('弹确认框')
-        this.$dialog.confirm({ title: '温馨提示', message: '您需要先登录才能继续操作哦', confirmButtonText: '去登录', cancelButtonText: '再逛逛' })
-          .then(() => {
-            this.$router.replace({
-              path: '/login',
-              query: {
-                backUrl: this.$route.fullPath
-              }
-            })
-          })
-          .catch(() => {})
+      if (this.loginConfirm()) {
         return
       }
-
       const { data } = await addCart(this.goodsId, this.addCount, this.detail.skuList[0].goods_sku_id)
-      // console.log(data)
       this.cartTotal = data.cartTotal
-      // console.log('正常请求')
       this.$toast('加入购物车成功')
       this.showPannel = false
+    },
+    goBuyNow () {
+      if (this.loginConfirm()) {
+        return
+      }
+      this.$router.push({
+        path: '/pay',
+        query: {
+          mode: 'buyNow',
+          goodsId: this.goodsId,
+          goodsSkuId: this.detail.skuList[0].goods_sku_id,
+          goodsNum: this.addCount
+        }
+      })
     }
   }
 }
@@ -342,7 +347,7 @@ export default {
   padding: 10px;
 }
 
-// 弹框样式
+// 弹层的样式
 .product {
   .product-title {
     display: flex;

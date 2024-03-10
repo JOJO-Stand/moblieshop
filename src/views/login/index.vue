@@ -46,7 +46,7 @@ export default {
       totalSecond: 60,
       second: 60,
       timer: null,
-      mobile: '',
+      mobile: '13811112222',
       MsgCode: ''
     }
   },
